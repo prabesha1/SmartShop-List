@@ -1,11 +1,25 @@
 import Foundation
 import CoreData
 
-/// Programmatic Core Data stack so we don't rely on an .xcdatamodeld file.
+/// Programmatic Core Data stack — no .xcdatamodeld file needed.
+/// Both Windows (Cursor editing) and macOS (Xcode building) devs can work
+/// on this project without any platform-specific configuration.
 enum PersistenceController {
+
+    // MARK: - Production store (SQLite on disk)
+
     static let shared: NSPersistentContainer = {
         let model = Self.makeModel()
         let container = NSPersistentContainer(name: "SmartShopModel", managedObjectModel: model)
+
+        // Enable lightweight migration so adding new attributes never crashes.
+        if let description = container.persistentStoreDescriptions.first {
+            description.setOption(true as NSNumber,
+                                  forKey: NSMigratePersistentStoresAutomaticallyOption)
+            description.setOption(true as NSNumber,
+                                  forKey: NSInferMappingModelAutomaticallyOption)
+        }
+
         container.loadPersistentStores { _, error in
             if let error = error {
                 fatalError("Unresolved Core Data error: \(error)")
@@ -16,7 +30,8 @@ enum PersistenceController {
         return container
     }()
 
-    /// In-memory store used by previews.
+    // MARK: - In-memory store for SwiftUI Previews only
+
     static let preview: NSPersistentContainer = {
         let model = Self.makeModel()
         let container = NSPersistentContainer(name: "SmartShopModel", managedObjectModel: model)
@@ -28,16 +43,21 @@ enum PersistenceController {
                 fatalError("Preview Core Data error: \(error)")
             }
         }
+
         let context = container.viewContext
-        // Seed a sample group and items for SwiftUI previews.
+
+        // Seed a sample group + items so previews have something to render.
         let demoGroup = GroupEntity(context: context)
         demoGroup.id = UUID()
         demoGroup.name = "Weekly Groceries"
         demoGroup.createdAt = Date()
+
         let sampleItems: [(String, Double, Bool)] = [
             ("Milk", 4.79, false),
             ("Bread", 3.29, true),
-            ("Eggs", 5.49, false)
+            ("Eggs", 5.49, false),
+            ("Butter", 6.99, false),
+            ("Apples", 3.99, true)
         ]
         for (name, price, done) in sampleItems {
             let item = ItemEntity(context: context)
@@ -52,10 +72,12 @@ enum PersistenceController {
         return container
     }()
 
+    // MARK: - Programmatic model definition
+
     private static func makeModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
 
-        // Group entity
+        // ── GroupEntity ──────────────────────────────────────
         let groupEntity = NSEntityDescription()
         groupEntity.name = "GroupEntity"
         groupEntity.managedObjectClassName = NSStringFromClass(GroupEntity.self)
@@ -75,7 +97,7 @@ enum PersistenceController {
         groupCreatedAt.attributeType = .dateAttributeType
         groupCreatedAt.isOptional = false
 
-        // Item entity
+        // ── ItemEntity ───────────────────────────────────────
         let itemEntity = NSEntityDescription()
         itemEntity.name = "ItemEntity"
         itemEntity.managedObjectClassName = NSStringFromClass(ItemEntity.self)
@@ -106,12 +128,12 @@ enum PersistenceController {
         itemCreatedAt.attributeType = .dateAttributeType
         itemCreatedAt.isOptional = false
 
-        // Relationships
+        // ── Relationships ────────────────────────────────────
         let itemsRelationship = NSRelationshipDescription()
         itemsRelationship.name = "items"
         itemsRelationship.destinationEntity = itemEntity
         itemsRelationship.minCount = 0
-        itemsRelationship.maxCount = 0 // 0 == no max
+        itemsRelationship.maxCount = 0          // 0 == to-many
         itemsRelationship.deleteRule = .cascadeDeleteRule
         itemsRelationship.isOptional = true
         itemsRelationship.isOrdered = false
@@ -128,15 +150,15 @@ enum PersistenceController {
         itemsRelationship.inverseRelationship = groupRelationship
         groupRelationship.inverseRelationship = itemsRelationship
 
-        groupEntity.properties = [groupId, groupName, groupCreatedAt, itemsRelationship]
-        itemEntity.properties = [itemId, itemName, itemPrice, itemIsCompleted, itemCreatedAt, groupRelationship]
+        groupEntity.properties  = [groupId, groupName, groupCreatedAt, itemsRelationship]
+        itemEntity.properties   = [itemId, itemName, itemPrice, itemIsCompleted, itemCreatedAt, groupRelationship]
 
         model.entities = [groupEntity, itemEntity]
         return model
     }
 }
 
-// MARK: - Managed Object subclasses
+// MARK: - Managed-Object Subclasses
 
 @objc(GroupEntity)
 final class GroupEntity: NSManagedObject {
