@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreData
+import UIKit
 
 // MARK: - Main Content View
 
@@ -20,10 +21,14 @@ struct ContentView: View {
 
     @State private var showingAddGroup = false
     @State private var searchText = ""
+    @State private var showArchived = false
+    @State private var renamingGroup: GroupEntity?
+    @State private var renameText = ""
 
     private var filteredGroups: [GroupEntity] {
-        if searchText.isEmpty { return Array(groups) }
-        return groups.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        let base = groups.filter { showArchived ? true : !$0.isArchived }
+        if searchText.isEmpty { return Array(base) }
+        return base.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
@@ -48,12 +53,28 @@ struct ContentView: View {
                             .foregroundStyle(.tint)
                     }
                 }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Toggle("Show archived", isOn: $showArchived)
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .font(.title3)
+                            .foregroundStyle(.tint)
+                    }
+                }
             }
             .sheet(isPresented: $showingAddGroup) {
                 AddGroupSheet { name in addGroup(named: name) }
                     .presentationDetents([.medium])
                     .presentationCornerRadius(24)
                     .presentationBackground(.ultraThinMaterial)
+            }
+            .alert("Rename List", isPresented: Binding(get: { renamingGroup != nil }, set: { if !$0 { renamingGroup = nil } })) {
+                TextField("Name", text: $renameText)
+                Button("Save", action: applyRename)
+                Button("Cancel", role: .cancel) { renamingGroup = nil }
+            } message: {
+                Text("Update the list name.")
             }
         }
     }
@@ -87,6 +108,43 @@ struct ContentView: View {
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
+                        Button {
+                            startRenaming(group)
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
+                        }
+
+                        Button {
+                            duplicate(group)
+                        } label: {
+                            Label("Duplicate", systemImage: "doc.on.doc")
+                        }
+
+                        Button {
+                            toggleArchive(group)
+                        } label: {
+                            Label(group.isArchived ? "Unarchive" : "Archive", systemImage: "archivebox")
+                        }
+
+                        Button {
+                            group.isTemplate.toggle()
+                            context.saveIfNeeded()
+                        } label: {
+                            Label(group.isTemplate ? "Unmark Template" : "Mark as Template", systemImage: "bookmark")
+                        }
+
+                        if let url = csvURL(for: group) {
+                            ShareLink(item: url) {
+                                Label("Export CSV", systemImage: "square.and.arrow.up")
+                            }
+                        }
+
+                        Button {
+                            copyChecklistToPasteboard(group)
+                        } label: {
+                            Label("Copy for Reminders", systemImage: "text.badge.plus")
+                        }
+
                         Button(role: .destructive) {
                             withAnimation(.smooth) { deleteGroup(group) }
                         } label: {
@@ -189,6 +247,82 @@ struct ContentView: View {
         context.delete(group)
         context.saveIfNeeded()
     }
+
+    private func startRenaming(_ group: GroupEntity) {
+        renamingGroup = group
+        renameText = group.name
+    }
+
+    private func applyRename() {
+        let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let group = renamingGroup, !trimmed.isEmpty else { return }
+        withAnimation(.smooth) {
+            group.name = trimmed
+            context.saveIfNeeded()
+            renamingGroup = nil
+        }
+    }
+
+    private func toggleArchive(_ group: GroupEntity) {
+        withAnimation(.smooth) {
+            group.isArchived.toggle()
+            context.saveIfNeeded()
+        }
+    }
+
+    private func duplicate(_ group: GroupEntity) {
+        withAnimation(.smooth) {
+            let copy = GroupEntity(context: context)
+            copy.id = UUID()
+            copy.name = "\(group.name) Copy"
+            copy.createdAt = Date()
+            copy.isTemplate = group.isTemplate
+            copy.budget = group.budget
+            copy.isArchived = false
+
+            for (idx, item) in group.sortedItems.enumerated() {
+                let newItem = ItemEntity(context: context)
+                newItem.id = UUID()
+                newItem.name = item.name
+                newItem.price = item.price
+                newItem.quantity = item.quantity
+                newItem.unit = item.unit
+                newItem.note = item.note
+                newItem.isCompleted = false
+                newItem.createdAt = Date()
+                newItem.sortOrder = Int64(idx)
+                newItem.group = copy
+            }
+            context.saveIfNeeded()
+        }
+    }
+
+    private func csvURL(for group: GroupEntity) -> URL? {
+        let header = "Name,Quantity,Unit,Price,Total,Note,Completed\n"
+        let rows = group.sortedItems.map { item -> String in
+            let note = item.note?.replacingOccurrences(of: ",", with: " ") ?? ""
+            let unit = item.unit?.replacingOccurrences(of: ",", with: " ") ?? ""
+            return "\"\(item.name)\",\(item.quantity),\"\(unit)\",\(item.price),\(item.totalPrice),\"\(note)\",\(item.isCompleted)"
+        }.joined(separator: "\n")
+        let csv = header + rows
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(group.name)-export.csv")
+
+        guard let data = csv.data(using: .utf8) else { return nil }
+        do {
+            try data.write(to: url)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    private func copyChecklistToPasteboard(_ group: GroupEntity) {
+        let lines = group.sortedItems.map { item in
+            let check = item.isCompleted ? "[x]" : "[ ]"
+            return "\(check) \(item.name)"
+        }.joined(separator: "\n")
+        UIPasteboard.general.string = lines
+    }
 }
 
 // MARK: - Glass Group Card
@@ -198,7 +332,11 @@ private struct GlassGroupCard: View {
 
     private var itemCount: Int { group.items?.count ?? 0 }
     private var completedCount: Int { group.items?.filter(\.isCompleted).count ?? 0 }
-    private var subtotal: Double { group.items?.reduce(0.0) { $0 + $1.price } ?? 0.0 }
+    private var subtotal: Double {
+        group.items?.reduce(0.0, { (sum: Double, item: ItemEntity) -> Double in
+            sum + item.totalPrice
+        }) ?? 0.0
+    }
     private var progress: Double {
         guard itemCount > 0 else { return 0 }
         return Double(completedCount) / Double(itemCount)

@@ -97,6 +97,47 @@ enum PersistenceController {
         groupCreatedAt.attributeType = .dateAttributeType
         groupCreatedAt.isOptional = false
 
+        let groupIsArchived = NSAttributeDescription()
+        groupIsArchived.name = "isArchived"
+        groupIsArchived.attributeType = .booleanAttributeType
+        groupIsArchived.isOptional = false
+        groupIsArchived.defaultValue = false
+
+        let groupIsTemplate = NSAttributeDescription()
+        groupIsTemplate.name = "isTemplate"
+        groupIsTemplate.attributeType = .booleanAttributeType
+        groupIsTemplate.isOptional = false
+        groupIsTemplate.defaultValue = false
+
+        let groupBudget = NSAttributeDescription()
+        groupBudget.name = "budget"
+        groupBudget.attributeType = .doubleAttributeType
+        groupBudget.isOptional = false
+        groupBudget.defaultValue = 0.0
+
+        let groupDueDate = NSAttributeDescription()
+        groupDueDate.name = "dueDate"
+        groupDueDate.attributeType = .dateAttributeType
+        groupDueDate.isOptional = true
+
+        let groupReminderEnabled = NSAttributeDescription()
+        groupReminderEnabled.name = "reminderEnabled"
+        groupReminderEnabled.attributeType = .booleanAttributeType
+        groupReminderEnabled.isOptional = false
+        groupReminderEnabled.defaultValue = false
+
+        let groupLastBudgetAlertLevel = NSAttributeDescription()
+        groupLastBudgetAlertLevel.name = "lastBudgetAlertLevel"
+        groupLastBudgetAlertLevel.attributeType = .integer16AttributeType
+        groupLastBudgetAlertLevel.isOptional = false
+        groupLastBudgetAlertLevel.defaultValue = 0
+
+        let groupBudgetHistoryData = NSAttributeDescription()
+        groupBudgetHistoryData.name = "budgetHistoryData"
+        groupBudgetHistoryData.attributeType = .binaryDataAttributeType
+        groupBudgetHistoryData.isOptional = true
+        groupBudgetHistoryData.allowsExternalBinaryDataStorage = true
+
         // ── ItemEntity ───────────────────────────────────────
         let itemEntity = NSEntityDescription()
         itemEntity.name = "ItemEntity"
@@ -128,6 +169,28 @@ enum PersistenceController {
         itemCreatedAt.attributeType = .dateAttributeType
         itemCreatedAt.isOptional = false
 
+        let itemQuantity = NSAttributeDescription()
+        itemQuantity.name = "quantity"
+        itemQuantity.attributeType = .doubleAttributeType
+        itemQuantity.isOptional = false
+        itemQuantity.defaultValue = 1.0
+
+        let itemUnit = NSAttributeDescription()
+        itemUnit.name = "unit"
+        itemUnit.attributeType = .stringAttributeType
+        itemUnit.isOptional = true
+
+        let itemNote = NSAttributeDescription()
+        itemNote.name = "note"
+        itemNote.attributeType = .stringAttributeType
+        itemNote.isOptional = true
+
+        let itemSortOrder = NSAttributeDescription()
+        itemSortOrder.name = "sortOrder"
+        itemSortOrder.attributeType = .integer64AttributeType
+        itemSortOrder.isOptional = false
+        itemSortOrder.defaultValue = 0
+
         // ── Relationships ────────────────────────────────────
         let itemsRelationship = NSRelationshipDescription()
         itemsRelationship.name = "items"
@@ -150,8 +213,8 @@ enum PersistenceController {
         itemsRelationship.inverseRelationship = groupRelationship
         groupRelationship.inverseRelationship = itemsRelationship
 
-        groupEntity.properties  = [groupId, groupName, groupCreatedAt, itemsRelationship]
-        itemEntity.properties   = [itemId, itemName, itemPrice, itemIsCompleted, itemCreatedAt, groupRelationship]
+        groupEntity.properties  = [groupId, groupName, groupCreatedAt, groupIsArchived, groupIsTemplate, groupBudget, groupDueDate, groupReminderEnabled, groupLastBudgetAlertLevel, groupBudgetHistoryData, itemsRelationship]
+        itemEntity.properties   = [itemId, itemName, itemPrice, itemIsCompleted, itemCreatedAt, itemQuantity, itemUnit, itemNote, itemSortOrder, groupRelationship]
 
         model.entities = [groupEntity, itemEntity]
         return model
@@ -165,6 +228,13 @@ final class GroupEntity: NSManagedObject {
     @NSManaged var id: UUID
     @NSManaged var name: String
     @NSManaged var createdAt: Date
+    @NSManaged var isArchived: Bool
+    @NSManaged var isTemplate: Bool
+    @NSManaged var budget: Double
+    @NSManaged var dueDate: Date?
+    @NSManaged var reminderEnabled: Bool
+    @NSManaged var lastBudgetAlertLevel: Int16
+    @NSManaged var budgetHistoryData: Data?
     @NSManaged var items: Set<ItemEntity>?
 
     var sortedItems: [ItemEntity] {
@@ -179,5 +249,9 @@ final class ItemEntity: NSManagedObject {
     @NSManaged var price: Double
     @NSManaged var isCompleted: Bool
     @NSManaged var createdAt: Date
+    @NSManaged var quantity: Double
+    @NSManaged var unit: String?
+    @NSManaged var note: String?
+    @NSManaged var sortOrder: Int64
     @NSManaged var group: GroupEntity
 }
