@@ -454,7 +454,7 @@ private struct SummaryCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: progress >= 1.0 ? "checkmark.seal.fill" : "sparkles")
                         .font(.caption2)
-                        .foregroundStyle(progress >= 1.0 ? .green : .tertiary)
+                        .foregroundStyle(progress >= 1.0 ? AnyShapeStyle(.green) : AnyShapeStyle(.tertiary))
                     Text(progress >= 1.0 ? "All done!" : "Keep going")
                         .font(.caption)
                         .foregroundStyle(.secondary)
