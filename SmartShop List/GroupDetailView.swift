@@ -22,7 +22,6 @@ struct GroupDetailView: View {
     @State private var showingReminderSheet = false
     @State private var sortingMode: SortingMode = .manual
     @State private var showUncheckedOnly = false
-    @State private var hasSentBudgetAlert = false
     @AppStorage("taxRate") private var taxRate: Double = 0.13
 
     init(group: GroupEntity) {
@@ -115,6 +114,7 @@ struct GroupDetailView: View {
             .scrollContentBackground(.hidden)
         }
         .navigationTitle(group.name)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { showingAddItem = true } label: {
@@ -211,7 +211,8 @@ struct GroupDetailView: View {
         LinearGradient(
             colors: [
                 Color(.systemGroupedBackground),
-                Color.blue.opacity(0.03),
+                Color.blue.opacity(0.04),
+                Color.purple.opacity(0.03),
                 Color(.systemGroupedBackground)
             ],
             startPoint: .topLeading,
@@ -223,24 +224,42 @@ struct GroupDetailView: View {
     // MARK: - Empty State
 
     private var emptyItemsView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 20) {
             ZStack {
                 Circle()
                     .fill(.ultraThinMaterial)
-                    .frame(width: 80, height: 80)
+                    .frame(width: 96, height: 96)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(
+                                .linearGradient(
+                                    colors: [.blue.opacity(0.35), .purple.opacity(0.2)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    )
 
-                Image(systemName: "checklist")
-                    .font(.system(size: 32, weight: .light))
-                    .foregroundStyle(.secondary)
+                Image(systemName: "cart.badge.plus")
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundStyle(
+                        .linearGradient(
+                            colors: [.blue, .purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .symbolEffect(.pulse)
             }
 
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 Text("No items yet")
-                    .font(.headline)
+                    .font(.title3.weight(.semibold))
                 Text("Tap + to add your first item.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
         }
         .frame(maxWidth: .infinity)
@@ -268,10 +287,12 @@ struct GroupDetailView: View {
     }
 
     private func deleteItems(at offsets: IndexSet) {
+        // Indices refer to `visibleItems` (filtered/sorted), not raw `items` fetch order.
         withAnimation(.smooth) {
-            for index in offsets { context.delete(items[index]) }
-            let remaining = items.sorted { $0.sortOrder < $1.sortOrder }.enumerated()
-            for (idx, item) in remaining {
+            let targets = offsets.map { visibleItems[$0] }
+            for item in targets { context.delete(item) }
+            let remaining = items.sorted { $0.sortOrder < $1.sortOrder }
+            for (idx, item) in remaining.enumerated() {
                 item.sortOrder = Int64(idx)
             }
             context.saveIfNeeded()
@@ -302,7 +323,7 @@ struct GroupDetailView: View {
             } else {
                 group.budget = 0
             }
-             context.saveIfNeeded()
+            context.saveIfNeeded()
         }
     }
 
@@ -430,9 +451,14 @@ private struct SummaryCard: View {
                     .font(.subheadline.weight(.medium))
                     .contentTransition(.numericText())
 
-                Text(progress >= 1.0 ? "All done! 🎉" : "Keep going!")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Image(systemName: progress >= 1.0 ? "checkmark.seal.fill" : "sparkles")
+                        .font(.caption2)
+                        .foregroundStyle(progress >= 1.0 ? .green : .tertiary)
+                    Text(progress >= 1.0 ? "All done!" : "Keep going")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Spacer()
@@ -615,14 +641,21 @@ private struct GlassTotalsFooter: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
+        .padding(.bottom, 4)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(statusColor.opacity(0.12))
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         )
         .overlay(alignment: .top) {
             Divider()
+                .opacity(0.35)
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
+        )
+        .shadow(color: .black.opacity(0.08), radius: 16, y: -6)
     }
 }
 
@@ -900,8 +933,9 @@ private struct TaxRateSheet: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    if let rate = Double(tempRateText.replacingOccurrences(of: ",", with: ".")), rate >= 0 {
-                        Text("$100 → $\(String(format: "%.2f", 100 + rate)) incl. tax")
+                    if let ratePercent = Double(tempRateText.replacingOccurrences(of: ",", with: ".")), ratePercent >= 0 {
+                        let previewTotal = 100 * (1 + ratePercent / 100)
+                        Text("$100 → $\(String(format: "%.2f", previewTotal)) incl. tax")
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
                     }
@@ -938,6 +972,7 @@ private struct TaxRateSheet: View {
 private struct BudgetSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var tempBudgetText: String
+    @State private var showValidation = false
     var onSave: (Double?) -> Void
 
     init(currentBudget: Double?, onSave: @escaping (Double?) -> Void) {
@@ -966,7 +1001,7 @@ private struct BudgetSheet: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+                                .strokeBorder(showValidation ? Color.red.opacity(0.5) : Color.white.opacity(0.2), lineWidth: showValidation ? 1 : 0.5)
                         )
                 }
 
@@ -979,6 +1014,13 @@ private struct BudgetSheet: View {
                     Text("Leave empty to remove the budget.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if showValidation {
+                    Label("Enter a valid amount or clear the field.", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.red)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
@@ -996,16 +1038,27 @@ private struct BudgetSheet: View {
                         .font(.headline)
                 }
             }
+            .onChange(of: tempBudgetText) { _, _ in
+                if showValidation { showValidation = false }
+            }
         }
     }
 
     private func save() {
         let cleaned = tempBudgetText.replacingOccurrences(of: ",", with: ".")
-        if cleaned.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        let trimmed = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            showValidation = false
             onSave(nil)
-        } else if let value = Double(cleaned), value >= 0 {
-            onSave(value)
+            dismiss()
+            return
         }
+        guard let value = Double(trimmed), value >= 0 else {
+            withAnimation(.smooth) { showValidation = true }
+            return
+        }
+        showValidation = false
+        onSave(value)
         dismiss()
     }
 }
@@ -1013,11 +1066,19 @@ private struct BudgetSheet: View {
 // MARK: - Preview
 
 #Preview {
-    NavigationStack {
-        GroupDetailView(group: {
-            let ctx = PersistenceController.preview.viewContext
-            return ctx.registeredObjects.compactMap { $0 as? GroupEntity }.first!
-        }())
+    let ctx = PersistenceController.preview.viewContext
+    let group: GroupEntity = {
+        if let existing = ctx.registeredObjects.compactMap({ $0 as? GroupEntity }).first {
+            return existing
+        }
+        let g = GroupEntity(context: ctx)
+        g.id = UUID()
+        g.name = "Preview"
+        g.createdAt = Date()
+        return g
+    }()
+    return NavigationStack {
+        GroupDetailView(group: group)
     }
-    .environment(\.managedObjectContext, PersistenceController.preview.viewContext)
+    .environment(\.managedObjectContext, ctx)
 }
