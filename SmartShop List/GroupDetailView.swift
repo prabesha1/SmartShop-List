@@ -23,6 +23,9 @@ struct GroupDetailView: View {
     @State private var sortingMode: SortingMode = .manual
     @State private var showUncheckedOnly = false
     @AppStorage("taxRate") private var taxRate: Double = 0.13
+    @State private var liveItemCount: Int = 0
+    @State private var liveCompletedCount: Int = 0
+    @State private var liveSubtotal: Double = 0
 
     init(group: GroupEntity) {
         self.group = group
@@ -45,8 +48,8 @@ struct GroupDetailView: View {
         // Treat zero as "no budget" so UI can clear the value while the Core Data field stays non-optional
         group.budget == 0 ? nil : group.budget
     }
-    private var completedCount: Int { items.filter(\.isCompleted).count }
-    private var subtotal: Double { items.reduce(0.0) { $0 + $1.totalPrice } }
+    private var completedCount: Int { liveCompletedCount }
+    private var subtotal: Double { liveSubtotal }
     private var progress: Double {
         guard !items.isEmpty else { return 0 }
         return Double(completedCount) / Double(items.count)
@@ -81,7 +84,7 @@ struct GroupDetailView: View {
                 if !items.isEmpty {
                     Section {
                         SummaryCard(
-                            itemCount: items.count,
+                            itemCount: liveItemCount,
                             completedCount: completedCount,
                             progress: progress
                         )
@@ -98,11 +101,18 @@ struct GroupDetailView: View {
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                     } else {
-                        ForEach(visibleItems) { item in
+                        ForEach(visibleItems, id: \.objectID) { item in
                             GlassItemRow(item: item, toggle: toggleCompletion)
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 3, leading: 16, bottom: 3, trailing: 16))
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        deleteItem(item)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                         }
                         .onDelete(perform: deleteItems)
                         .onMove(perform: moveItems)
@@ -203,6 +213,12 @@ struct GroupDetailView: View {
             group.recordBudgetSnapshot(total: totalWithTax)
             evaluateBudgetAlert()
         }
+        .onAppear {
+            recalculateLiveMetrics()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: context)) { _ in
+            recalculateLiveMetrics()
+        }
     }
 
     // MARK: - Background
@@ -299,11 +315,26 @@ struct GroupDetailView: View {
         }
     }
 
-    private func toggleCompletion(_ item: ItemEntity) {
+    private func deleteItem(_ item: ItemEntity) {
         withAnimation(.smooth) {
-            item.isCompleted.toggle()
+            context.delete(item)
+            let remaining = items
+                .filter { $0 != item }
+                .sorted { $0.sortOrder < $1.sortOrder }
+            for (idx, row) in remaining.enumerated() {
+                row.sortOrder = Int64(idx)
+            }
             context.saveIfNeeded()
         }
+    }
+
+    private func toggleCompletion(_ item: ItemEntity) {
+        guard !item.isDeleted else { return }
+        withAnimation(.smooth) {
+            item.isCompleted = !item.isCompleted
+        }
+        context.saveIfNeeded()
+        recalculateLiveMetrics()
     }
 
     private func moveItems(from offsets: IndexSet, to destination: Int) {
@@ -412,6 +443,13 @@ struct GroupDetailView: View {
 
     private func cancelReminder() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["due-\(group.id.uuidString)"])
+    }
+
+    private func recalculateLiveMetrics() {
+        let current = Array(items)
+        liveItemCount = current.count
+        liveCompletedCount = current.filter(\.isCompleted).count
+        liveSubtotal = current.reduce(0.0) { $0 + $1.totalPrice }
     }
 }
 

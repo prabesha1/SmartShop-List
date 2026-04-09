@@ -30,6 +30,12 @@ struct ContentView: View {
         if searchText.isEmpty { return Array(base) }
         return base.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
+    private var hasArchivedGroups: Bool {
+        groups.contains(where: \.isArchived)
+    }
+    private var isArchiveFilterHidingResults: Bool {
+        !showArchived && searchText.isEmpty && filteredGroups.isEmpty && hasArchivedGroups
+    }
 
     var body: some View {
         NavigationStack {
@@ -38,6 +44,10 @@ struct ContentView: View {
 
                 if groups.isEmpty {
                     emptyStateView
+                } else if isArchiveFilterHidingResults {
+                    hiddenArchivedStateView
+                } else if filteredGroups.isEmpty {
+                    emptySearchStateView
                 } else {
                     groupsScrollView
                 }
@@ -100,7 +110,7 @@ struct ContentView: View {
     private var groupsScrollView: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                ForEach(filteredGroups) { group in
+                ForEach(filteredGroups, id: \.objectID) { group in
                     NavigationLink {
                         GroupDetailView(group: group)
                     } label: {
@@ -227,6 +237,53 @@ struct ContentView: View {
             .padding(.top, 4)
         }
         .padding(32)
+    }
+
+    private var emptySearchStateView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text("No matching lists")
+                .font(.headline)
+            Text("Try a different keyword or clear search.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(28)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+        )
+        .padding(.horizontal, 24)
+    }
+
+    private var hiddenArchivedStateView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "archivebox")
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text("Archived lists are hidden")
+                .font(.headline)
+            Text("Enable \"Show archived\" from the filter menu to view them.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(28)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(.white.opacity(0.2), lineWidth: 0.5)
+        )
+        .padding(.horizontal, 24)
     }
 
     // MARK: - Actions

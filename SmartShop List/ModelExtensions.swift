@@ -47,7 +47,24 @@ extension GroupEntity {
 
     func recordBudgetSnapshot(total: Double) {
         var history = budgetHistory
-        history.append(BudgetSnapshot(date: Date(), total: total))
+        let now = Date()
+
+        if let last = history.last {
+            let delta = abs(last.total - total)
+            let elapsed = now.timeIntervalSince(last.date)
+
+            // Skip near-duplicate points and replace very recent ones to reduce write churn.
+            if delta < 0.01, elapsed < 60 {
+                return
+            }
+            if elapsed < 20 {
+                history[history.count - 1] = BudgetSnapshot(date: now, total: total)
+                budgetHistory = history
+                return
+            }
+        }
+
+        history.append(BudgetSnapshot(date: now, total: total))
         // Keep last 30 entries to bound storage
         if history.count > 30 {
             history.removeFirst(history.count - 30)
