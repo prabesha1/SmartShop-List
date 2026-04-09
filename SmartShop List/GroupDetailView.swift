@@ -617,83 +617,79 @@ private struct GlassTotalsFooter: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
-            HStack {
-                Text("Subtotal")
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(subtotal, format: .currency(code: currencyCode))
-                    .contentTransition(.numericText())
-            }
-            .font(.subheadline)
-
-            HStack {
-                Text("Tax (\(String(format: "%.1f", taxRate * 100))%)")
-                    .foregroundStyle(.tertiary)
-                Spacer()
-                Text(taxAmount, format: .currency(code: currencyCode))
-                    .foregroundStyle(.secondary)
-                    .contentTransition(.numericText())
-            }
-            .font(.caption)
-
-            Divider()
-                .padding(.vertical, 2)
-
-            HStack {
-                Text("Total")
-                    .font(.headline)
-                Spacer()
-                Text(total, format: .currency(code: currencyCode))
-                    .font(.system(.title3, design: .rounded, weight: .bold))
-                    .contentTransition(.numericText())
-                    .foregroundStyle(statusColor)
-            }
-
-            if let budget {
-                HStack {
-                    Text("Budget")
+        VStack(spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Total")
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(budget, format: .currency(code: currencyCode))
-                        .foregroundStyle(.secondary)
+                    Text(total, format: .currency(code: currencyCode))
+                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .foregroundStyle(statusColor)
+                        .contentTransition(.numericText())
                 }
-                .font(.caption)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text("Subtotal")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Text(subtotal, format: .currency(code: currencyCode))
+                        .font(.subheadline.weight(.semibold))
+                        .contentTransition(.numericText())
+                    Text("Tax \(String(format: "%.1f", taxRate * 100))%: \(taxAmount, format: .currency(code: currencyCode))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .contentTransition(.numericText())
+                }
             }
 
-            if let dueDate {
-                HStack {
-                    Label("Reminder", systemImage: "bell")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(dueDate, style: .date)
-                        .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                if let budget {
+                    Label("Budget \(budget, format: .currency(code: currencyCode))", systemImage: "dollarsign.circle")
+                        .lineLimit(1)
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(.white.opacity(0.18), in: Capsule())
                 }
-                .font(.caption)
+
+                if let dueDate {
+                    Label("\(dueDate, style: .date)", systemImage: "bell")
+                        .lineLimit(1)
+                        .font(.caption.weight(.medium))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(.white.opacity(0.18), in: Capsule())
+                }
+
+                Spacer(minLength: 0)
             }
+            .foregroundStyle(.secondary)
 
             if !budgetHistory.isEmpty {
                 BudgetSparkline(points: budgetHistory.map { $0.total }, color: statusColor)
                     .frame(height: 34)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
         .padding(.bottom, 4)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(statusColor.opacity(0.12))
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [statusColor.opacity(0.18), .white.opacity(0.08)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         )
-        .overlay(alignment: .top) {
-            Divider()
-                .opacity(0.35)
-        }
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(.white.opacity(0.12), lineWidth: 0.5)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .strokeBorder(.white.opacity(0.2), lineWidth: 0.6)
         )
-        .shadow(color: .black.opacity(0.08), radius: 16, y: -6)
+        .shadow(color: statusColor.opacity(0.14), radius: 14, y: -4)
     }
 }
 

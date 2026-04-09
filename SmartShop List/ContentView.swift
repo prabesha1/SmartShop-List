@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var showArchived = false
     @State private var renamingGroup: GroupEntity?
     @State private var renameText = ""
+    @State private var showingProfile = false
 
     private var filteredGroups: [GroupEntity] {
         let base = groups.filter { showArchived ? true : !$0.isArchived }
@@ -78,6 +79,38 @@ struct ContentView: View {
                     .presentationDetents([.medium])
                     .presentationCornerRadius(24)
                     .presentationBackground(.ultraThinMaterial)
+            }
+            .sheet(isPresented: $showingProfile) {
+                ProfileSheet()
+                    .presentationDetents([.medium])
+                    .presentationCornerRadius(24)
+                    .presentationBackground(.ultraThinMaterial)
+            }
+            .safeAreaInset(edge: .bottom) {
+                HStack {
+                    Spacer()
+                    Button { showingProfile = true } label: {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.blue, .purple],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .frame(width: 52, height: 52)
+                                .shadow(color: .purple.opacity(0.35), radius: 12, y: 6)
+
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .accessibilityLabel("Profile")
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 6)
+                }
             }
             .alert("Rename List", isPresented: Binding(get: { renamingGroup != nil }, set: { if !$0 { renamingGroup = nil } })) {
                 TextField("Name", text: $renameText)
@@ -602,6 +635,86 @@ private struct AddGroupSheet: View {
         guard !trimmed.isEmpty else { return }
         onSave(trimmed)
         dismiss()
+    }
+}
+
+private struct ProfileSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 18) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [.blue.opacity(0.9), .purple.opacity(0.85)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(height: 120)
+
+                    HStack(spacing: 14) {
+                        Image(systemName: "person.2.fill")
+                            .font(.system(size: 30, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 58, height: 58)
+                            .background(.white.opacity(0.22), in: Circle())
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Project Team")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(.white)
+                            Text("SmartShop List")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.9))
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Prabesh Shrestha")
+                            .font(.headline)
+                        Text("Student ID: 101538718")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Divider()
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Moksh Chhetri")
+                            .font(.headline)
+                        Text("Student ID: 101515045")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(.thickMaterial)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(.white.opacity(0.26), lineWidth: 0.7)
+                )
+
+                Spacer()
+            }
+            .padding(20)
+            .navigationTitle("Profile")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
     }
 }
 
