@@ -1,5 +1,10 @@
 # SmartShop List
 
+## Team - G20
+
+- Prabesh Shrestha — 101538718
+- Moksh Chhetri — 101515045
+
 SmartShop List is an iOS shopping list app built with SwiftUI and Core Data.  
 It helps you organize lists by category, track item costs, monitor totals with tax, and stay within budget while shopping.
 
@@ -38,7 +43,4 @@ It helps you organize lists by category, track item costs, monitor totals with t
 - `SmartShop List/ModelExtensions.swift`  
   Helper methods for model calculations and context save utilities.
 
-## Team
 
-- Prabesh Shrestha — 101538718
-- Moksh Chhetri — 101515045
