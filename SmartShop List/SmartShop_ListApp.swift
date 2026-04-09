@@ -1,9 +1,7 @@
-//
-//  SmartShop_ListApp.swift
-//  SmartShop List
-//
-//  Created by Prabesh Shrestha on 2026-02-08.
-//
+// SmartShop List
+// Team - G20
+// Prabesh Shrestha — 101538718
+// Moksh Chhetri — 101515045
 
 import SwiftUI
 import CoreData

@@ -1,15 +1,11 @@
-//
-//  GroupDetailView.swift
-//  SmartShop List
-//
-//  Created by Prabesh Shrestha on 2026-02-08.
-//
+// SmartShop List
+// Team - G20
+// Prabesh Shrestha — 101538718
+// Moksh Chhetri — 101515045
 
 import SwiftUI
 import CoreData
 import UserNotifications
-
-// MARK: - Group Detail View
 
 struct GroupDetailView: View {
     @ObservedObject var group: GroupEntity
@@ -80,7 +76,6 @@ struct GroupDetailView: View {
             backgroundView
 
             List {
-                // Progress summary section
                 if !items.isEmpty {
                     Section {
                         SummaryCard(
@@ -94,7 +89,6 @@ struct GroupDetailView: View {
                     .listRowSeparator(.hidden)
                 }
 
-                // Items section
                 Section {
                     if items.isEmpty {
                         emptyItemsView
@@ -221,8 +215,6 @@ struct GroupDetailView: View {
         }
     }
 
-    // MARK: - Background
-
     private var backgroundView: some View {
         LinearGradient(
             colors: [
@@ -236,8 +228,6 @@ struct GroupDetailView: View {
         )
         .ignoresSafeArea()
     }
-
-    // MARK: - Empty State
 
     private var emptyItemsView: some View {
         VStack(spacing: 20) {
@@ -281,8 +271,6 @@ struct GroupDetailView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 48)
     }
-
-    // MARK: - Actions
 
     private func addItem(name: String, price: Double, quantity: Double, unit: String?, note: String?) {
         withAnimation(.smooth) {
@@ -453,8 +441,6 @@ struct GroupDetailView: View {
     }
 }
 
-// MARK: - Summary Card
-
 private struct SummaryCard: View {
     let itemCount: Int
     let completedCount: Int
@@ -462,7 +448,6 @@ private struct SummaryCard: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Circular progress ring
             ZStack {
                 Circle()
                     .stroke(.quaternary, lineWidth: 5)
@@ -521,8 +506,6 @@ private struct SummaryCard: View {
     }
 }
 
-// MARK: - Glass Item Row
-
 private struct GlassItemRow: View {
     @ObservedObject var item: ItemEntity
     var toggle: (ItemEntity) -> Void
@@ -532,7 +515,6 @@ private struct GlassItemRow: View {
             toggle(item)
         } label: {
             HStack(spacing: 12) {
-                // Animated checkbox
                 ZStack {
                     Circle()
                         .fill(item.isCompleted ? Color.green.opacity(0.15) : Color.clear)
@@ -544,7 +526,6 @@ private struct GlassItemRow: View {
                         .contentTransition(.symbolEffect(.replace))
                 }
 
-                // Item info
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.name)
                         .font(.body)
@@ -595,8 +576,6 @@ private struct GlassItemRow: View {
         .buttonStyle(.plain)
     }
 }
-
-// MARK: - Glass Totals Footer
 
 private struct GlassTotalsFooter: View {
     var subtotal: Double
@@ -761,8 +740,6 @@ private struct ReminderSheet: View {
     }
 }
 
-// MARK: - Add Item Sheet
-
 private struct AddItemSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
@@ -781,7 +758,6 @@ private struct AddItemSheet: View {
         NavigationStack {
             VStack(spacing: 24) {
                 VStack(alignment: .leading, spacing: 18) {
-                    // Product name
                     VStack(alignment: .leading, spacing: 6) {
                         Text("PRODUCT")
                             .font(.caption.weight(.semibold))
@@ -802,7 +778,6 @@ private struct AddItemSheet: View {
                             .focused($focusedField, equals: .name)
                     }
 
-                    // Price
                     VStack(alignment: .leading, spacing: 6) {
                         Text("PRICE")
                             .font(.caption.weight(.semibold))
@@ -823,7 +798,6 @@ private struct AddItemSheet: View {
                             .focused($focusedField, equals: .price)
                     }
 
-                    // Quantity & unit
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("QTY")
@@ -862,7 +836,6 @@ private struct AddItemSheet: View {
                         }
                     }
 
-                    // Note
                     VStack(alignment: .leading, spacing: 6) {
                         Text("NOTE")
                             .font(.caption.weight(.semibold))
@@ -927,8 +900,6 @@ private struct AddItemSheet: View {
     }
 }
 
-// MARK: - Tax Rate Sheet
-
 private struct TaxRateSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var taxRate: Double
@@ -961,7 +932,6 @@ private struct TaxRateSheet: View {
                         )
                 }
 
-                // Preview
                 HStack {
                     Text("Preview:")
                         .font(.caption)
@@ -1000,8 +970,6 @@ private struct TaxRateSheet: View {
         dismiss()
     }
 }
-
-// MARK: - Budget Sheet
 
 private struct BudgetSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -1096,8 +1064,6 @@ private struct BudgetSheet: View {
         dismiss()
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     let ctx = PersistenceController.preview.viewContext

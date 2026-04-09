@@ -1,15 +1,11 @@
-//
-//  ContentView.swift
-//  SmartShop List
-//
-//  Created by Prabesh Shrestha on 2026-02-08.
-//
+// SmartShop List
+// Team - G20
+// Prabesh Shrestha — 101538718
+// Moksh Chhetri — 101515045
 
 import SwiftUI
 import CoreData
 import UIKit
-
-// MARK: - Main Content View
 
 struct ContentView: View {
     @Environment(\.managedObjectContext) private var context
@@ -122,8 +118,6 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Background
-
     private var backgroundView: some View {
         LinearGradient(
             colors: [
@@ -137,8 +131,6 @@ struct ContentView: View {
         )
         .ignoresSafeArea()
     }
-
-    // MARK: - Groups List
 
     private var groupsScrollView: some View {
         ScrollView {
@@ -202,8 +194,6 @@ struct ContentView: View {
         }
         .scrollContentBackground(.hidden)
     }
-
-    // MARK: - Empty State
 
     private var emptyStateView: some View {
         VStack(spacing: 24) {
@@ -319,8 +309,6 @@ struct ContentView: View {
         .padding(.horizontal, 24)
     }
 
-    // MARK: - Actions
-
     private func addGroup(named name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -415,8 +403,6 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Glass Group Card
-
 private struct GlassGroupCard: View {
     @ObservedObject var group: GroupEntity
 
@@ -454,7 +440,6 @@ private struct GlassGroupCard: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            // Category icon
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(.ultraThinMaterial)
@@ -475,7 +460,6 @@ private struct GlassGroupCard: View {
                     )
             }
 
-            // Name & count
             VStack(alignment: .leading, spacing: 4) {
                 Text(group.name)
                     .font(.headline)
@@ -499,7 +483,6 @@ private struct GlassGroupCard: View {
 
             Spacer()
 
-            // Price & progress
             VStack(alignment: .trailing, spacing: 6) {
                 if subtotal > 0 {
                     Text(subtotal, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
@@ -538,8 +521,6 @@ private struct GlassGroupCard: View {
     }
 }
 
-// MARK: - Add Group Sheet
-
 private struct AddGroupSheet: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focused: Bool
@@ -558,7 +539,6 @@ private struct AddGroupSheet: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 28) {
-                // Name input
                 VStack(alignment: .leading, spacing: 8) {
                     Text("LIST NAME")
                         .font(.caption.weight(.semibold))
@@ -581,7 +561,6 @@ private struct AddGroupSheet: View {
                         .onSubmit { save() }
                 }
 
-                // Quick suggestions
                 VStack(alignment: .leading, spacing: 10) {
                     Text("QUICK START")
                         .font(.caption.weight(.semibold))
@@ -717,8 +696,6 @@ private struct ProfileSheet: View {
         }
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     ContentView()

@@ -1,3 +1,8 @@
+// SmartShop List
+// Team - G20
+// Prabesh Shrestha — 101538718
+// Moksh Chhetri — 101515045
+
 import Foundation
 import CoreData
 
@@ -5,8 +10,6 @@ import CoreData
 /// Both Windows (Cursor editing) and macOS (Xcode building) devs can work
 /// on this project without any platform-specific configuration.
 enum PersistenceController {
-
-    // MARK: - Production store (SQLite on disk)
 
     static let shared: NSPersistentContainer = {
         let model = Self.makeModel()
@@ -29,8 +32,6 @@ enum PersistenceController {
         }
         return container
     }()
-
-    // MARK: - In-memory store for SwiftUI Previews only
 
     static let preview: NSPersistentContainer = {
         let model = Self.makeModel()
@@ -71,8 +72,6 @@ enum PersistenceController {
         try? context.save()
         return container
     }()
-
-    // MARK: - Programmatic model definition
 
     private static func makeModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
@@ -220,8 +219,6 @@ enum PersistenceController {
         return model
     }
 }
-
-// MARK: - Managed-Object Subclasses
 
 @objc(GroupEntity)
 final class GroupEntity: NSManagedObject {

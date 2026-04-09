@@ -1,12 +1,13 @@
+// SmartShop List
+// Team - G20
+// Prabesh Shrestha — 101538718
+// Moksh Chhetri — 101515045
+
 import Foundation
 import CoreData
 
-// MARK: - Identifiable conformance for SwiftUI ForEach / List
-
 extension GroupEntity: Identifiable {}
 extension ItemEntity: Identifiable {}
-
-// MARK: - Computed helpers
 
 extension ItemEntity {
     var totalPrice: Double {
@@ -14,8 +15,6 @@ extension ItemEntity {
         return price * qty
     }
 }
-
-// MARK: - Convenience save helper
 
 extension NSManagedObjectContext {
     /// Saves only when there are uncommitted changes, and handles errors gracefully.
